@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+from collections import Counter
 cho = input('What you want: 1 - Add comments. 2 - Clear the file. :')
 if cho == '1':
     while True:
@@ -44,7 +45,7 @@ if cho == '1':
                 u = u.replace(txt_2,'')
             if u != '':
                 arr_3.append(u)
-        with open(r'C:\Users\avdim\Desktop\MyApps\CheckNum\Ail\AIL.txt', 'a', encoding="UTF-8") as file_par:
+        with open(r'C:\Users\avdim\Desktop\MyApps\CN\Ail\AIL.txt', 'a', encoding="UTF-8") as file_par:
             print('0 - Обычный номер (Звонки или сообщения реальных представителей банка/компании/организации, комментарии положительные или нейтральные, нет навязчивости, угроз или попыток обмана.)\n0.5 - Подозрительный номер (Комментарии утверждают «мошенники», но без конкретики, бессмысленные оскорбления, признаки странного поведения (например, предлагают сразу заблокировать номер) без явной угрозы.)\n1 - Спам номер (Частые звонки или сообщения без причины, робот, автоответчик, записи звонков, опросы, реклама, массовая рассылка,нет явного мошенничества или угроз.)\n2 - Опасный номер (Предлагали кредиты, лотереи, казино, услуги с финансовыми последствиями, звонки, направленные на обман или получение выгоды (например, подписка без согласия), молчание, сброс трубки, попытка скрыть информацию, нет прямого требования денег или угроз.)\n3 - Высокоопасный номер (Представились банком/компанией/организацией с целью обмана, пытались узнать личные данные (паспорт, карты, коды),прямые угрозы, вымогательство денег, предлагали запрещённые услуги на территории Украины.)')
             print(f'Number of comments:{len(arr_3)}')
             for txt_3 in arr_3:
@@ -60,19 +61,10 @@ if cho == '1':
             if answ.lower() == 'y':
                 break
 elif cho == '2':
-    with open(r'C:\Users\avdim\Desktop\MyApps\CheckNum\Ail\AIL.txt', 'r', encoding="UTF-8") as file_check:
+    with (open(r'C:\Users\avdim\Desktop\MyApps\CN\Ail\TEST1.txt', 'r', encoding="UTF-8") as file_check):
         lines = file_check.readlines()
+        counter = Counter(lines)
         line_arr = []
-        for line in lines:
-            line_arr.append(line)
-        for i_1,line_1 in enumerate(line_arr):
-            i_1+=1
-            for i_2,line_2 in enumerate(line_arr,start=i_1):
-                if line_1 == line_2:
-                    with open(r'C:\Users\avdim\Desktop\MyApps\CheckNum\Ail\AILF.txt', 'a', encoding="UTF-8") as file_del:
-                        file_del.write(f'{line_1}')
-                    for line_remove in line_arr:
-                        if line_remove == line_arr:
-                            line_arr.remove(line_1)
-                    i_1-=1
-                    break
+        with (open(r'C:\Users\avdim\Desktop\MyApps\CN\Ail\TEST2.txt', 'w', encoding="UTF-8") as file_filter):
+            for cou in counter:
+                    file_filter.write(cou)
