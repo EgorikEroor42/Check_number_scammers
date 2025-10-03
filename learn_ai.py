@@ -1,5 +1,6 @@
 import re
 import pandas
+import numpy
 from sklearn.model_selection import train_test_split,cross_val_score,GridSearchCV
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LinearRegression
@@ -29,7 +30,14 @@ def ail(path_for_learn,path_for_save):
     ])
     pil.fit(x_train,y_train)
     y_pred = pil.predict(x_test)
+    clas = numpy.array([0,0.5,1,2,3])
+    y_pred_roun = [clas[numpy.argmin(abs(clas - p))]for p in y_pred]
+    y_test_clas = y_test.astype(str)
+    y_pred_clas = list(map(str,y_pred_roun))
     print('MSE:',mean_squared_error(y_test,y_pred))
     print('R^2:',r2_score(y_test,y_pred))
+    print('Accuracy:',accuracy_score(y_test_clas,y_pred_clas))
+    print('Confusion matrix:\n',confusion_matrix(y_test_clas,y_pred_clas))
+    print('Classification report:\n',classification_report(y_test_clas,y_pred_clas))
     joblib.dump(pil,f'{path_for_save}\AI.joblib')
-ail(r'C:\Users\avdim\Desktop\MyApps\CheckNum\Ail\AIL.txt',r'C:\Users\avdim\Desktop\MyApps\CheckNum\Ail')
+ail(r'C:\Users\avdim\Desktop\MyApps\CN\Ail\TEST2.txt',r'C:\Users\avdim\Desktop\MyApps\CN\Ail')
