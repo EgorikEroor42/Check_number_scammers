@@ -20,7 +20,7 @@ if txt_2.status_code == 200:
     if txt_2 is not None:
         txt_2 = math.ceil(float(re.sub('×','',txt_2.get_text(strip=True)))/12)
     for rev in range(1 if txt_2 == 1 else txt_2):
-        txt_3 = BeautifulSoup(requests.get(f'https://www.telefonnyjdovidnyk.com.ua/nomer/{num}/p/{rev}',headers={'User-Agent':random.choice(us_ag)}).text, 'html.parser').find_all('p', class_="comment-text")
+        txt_3 = BeautifulSoup(requests.get(f'https://www.telefonnyjdovidnyk.com.ua/nomer/{num}/p/{rev}',headers={'User-Agent':random.choice(us_ag)}).text,'html.parser').find_all('p',class_="comment-text")
         for txt in txt_3:
             review_arr.add(txt.get_text(strip=True))
 num_oper = ['intertelecom','kyivstar','lifecell','vodafone','3mob']
@@ -43,7 +43,7 @@ for filt in review_arr:
     if filt != '':
         comment_score_arr[f'{filt}'] = float(score_ai.predict([filt])[0])
 if len(comment_score_arr) > 1:
-        client = genai.Client(api_key='Gemini_API')
+        client = genai.Client(api_key='AIzaSyB2pfu4EFLjyklRZtM5VXZ6J5bminuyMqg')
         resp_1 = client.models.generate_content(model='gemini-2.5-flash',contents=f'Проанализируй следующие комментарии, связанные с номером телефона:\n{list(comment_score_arr.keys())}\nОтветь строго одной цифрой:\n1 — если комментарии указывают, что номер телефона принадлежит, прикидывается или связан с организацией, банком, компанией или службой поддержки;\n0 — если комментарии говорят о чём-то другом.\nОтвет должен быть только цифрой, без пояснений.')
         if resp_1:
             comment_for_ai = []
@@ -51,7 +51,5 @@ if len(comment_score_arr) > 1:
                 if val == 1.0 or 3.0:
                     comment_for_ai.append(key)
             resp_2 = client.models.generate_content(model='gemini-2.5-flash',contents=f'На основе комментариев, связанных с номером телефона:\n{comment_for_ai}\nСформулируй краткую рекомендацию на украинском языке: стоит ли доверять этому номеру телефона.\nПосле рекомендации приведи до 10 комментариев из списка, которые лучше всего подтверждают твой вывод.\nФормат вывода:\nРекомендация:\n<текст>\nПодтверждающие комментарии:\n1. <комментарий 1>\n2. <комментарий 2>\n...')
-            print(resp_2.text)
         else:
             resp_2 = client.models.generate_content(model='gemini-2.5-flash',contents=f'На основе комментариев, связанных с номером телефона:\n{comment_score_arr.keys()}\nСформулируй краткую рекомендацию на украинском языке: стоит ли доверять этому номеру телефона.\nПосле рекомендации приведи до 10 комментариев из списка, которые лучше всего подтверждают твой вывод.\nФормат вывода:\nРекомендация:\n<текст>\nПодтверждающие комментарии:\n1. <комментарий 1>\n2. <комментарий 2>\n...')
-            print(resp_2.text)
