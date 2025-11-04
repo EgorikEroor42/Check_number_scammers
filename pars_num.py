@@ -4,9 +4,12 @@ from collections import Counter
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from google import genai
-from impo.db import Session,Numbers
+from impo.db import Session,Numbers,AllComments
 from sqlalchemy import select
 num = str(input('Enter number:'))
+async def all_coom():
+    async with Session() as session:
+        comm = await session.scalar(select(AllComments.comment).where(AllComments.comment == comm))
 async def all_num():
     async with Session() as session:
         chnum = await session.scalar(select(Numbers.created_at).where(Numbers.number == num))
@@ -76,6 +79,8 @@ async def ai_help():
             resp_3 = client.models.generate_content(model='gemini-2.5-flash',contents=f'На основе комментариев, относящихся к номеру телефона:\n{comment_score_arr.keys()}\nВыбери не более 10 комментариев, которые наиболее полно и точно характеризуют этот номер телефона. Ответ должен быть без твоего ответа просто комментарии.')
             async with Session() as session:
                 await session.add(Numbers(number=num,last_10_comments=resp_3.text,answer_ai=resp_2,rating=round(sum(scres) / len(comment_score_arr.keys()),1),created_at=datetime.today().date()))
+                for comm in comment_score_arr:
+                    await session.add(AllComments(comments=comm))
 async def main():
     if await all_num() is True:
         await ret_num()
