@@ -4,12 +4,9 @@ from collections import Counter
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from google import genai
-from impo.db import Session,Numbers,AllComments
+from impo.db import AllComments,Numbers,Session
 from sqlalchemy import select
 num = str(input('Enter number:'))
-async def all_coom():
-    async with Session() as session:
-        comm = await session.scalar(select(AllComments.comment).where(AllComments.comment == comm))
 async def all_num():
     async with Session() as session:
         chnum = await session.scalar(select(Numbers.created_at).where(Numbers.number == num))
