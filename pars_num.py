@@ -1,5 +1,4 @@
-import asyncio,joblib,math,random,re,requests
-import google.genai.errors
+import asyncio,google.genai.errors,joblib,json,math,random,re,requests
 from bs4 import BeautifulSoup
 from collections import Counter
 from datetime import datetime
@@ -24,7 +23,7 @@ async def search(num):
     async def ret_num():
         async with Session() as session:
             retnum = await session.scalar(select(Numbers).where(Numbers.number == num))
-            return str(retnum)
+            return {"number":retnum.number,"last_10_comments":retnum.last_10_comments,"answer_ai":retnum.answer_ai,"rating":retnum.rating,"created_at":retnum.created_at}
     async def ai_help():
             review_arr = set()
             us_ag = ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36","Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36","Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36","Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:139.0) Gecko/20100101 Chrome/138.0.0.0 Safari/537.36","Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36","Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0","Mozilla/5.0 (Windows NT 11.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0","Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0","Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0","Mozilla/5.0 (Macintosh; Intel Mac OS X 14.6; rv:131.0) Gecko/20100101 Firefox/131.0"]
@@ -64,37 +63,39 @@ async def search(num):
                     if filt != '':
                         answai = float(score_ai.predict([filt])[0])
                         score = {0.0:5,0.5:4,1.0:3,2.0:2,3.0:1}
-                        comment_score_arr[f'{filt}'] = score.get(answai, 0)
+                        comment_score_arr[filt] = score.get(answai, 0)
                 rep = Counter(comment_score_arr.values())
                 scres = []
                 for key,val in rep.items():
                     scres.append(key * val)
-                client = genai.Client(api_key='AIzaSyB2pfu4EFLjyklRZtM5VXZ6J5bminuyMqg')
+                client = genai.Client(api_key='AIzaSyBRdSK5BOr7oYjKbfFG_97BhxDCNxR_s0I')
                 async with Session() as session:
-                    try:
-                        resp_1 = client.models.generate_content(model='gemini-2.5-flash',contents=f'Проанализируй следующие комментарии, связанные с номером телефона:\n{list(comment_score_arr.keys())}\nОтветь строго одной цифрой:\n1 — если комментарии указывают, что номер телефона принадлежит, прикидывается или связан с организацией, банком, компанией или службой поддержки;\n0 — если комментарии говорят о чём-то другом.\nОтвет должен быть только цифрой, без пояснений.')
-                        if resp_1:
-                            comment_for_ai = []
-                            for key,val in comment_score_arr.items():
-                                if val == 1.0 or 3.0:
-                                    comment_for_ai.append(key)
-                            resp_2 = client.models.generate_content(model='gemini-2.5-flash',contents=f'На основе комментариев, связанных с номером телефона:\n{comment_for_ai}\nСформулируй краткую рекомендацию на украинском языке: стоит ли доверять этому номеру телефона.\nПосле рекомендации приведи до 10 комментариев из списка, которые лучше всего подтверждают твой вывод.\nФормат вывода:\nРекомендация:\n<текст>\nПодтверждающие комментарии:\n1. <комментарий 1>\n2. <комментарий 2>\n...')
+                    async with session.begin():
+                        for comm in comment_score_arr:
+                            session.add(AllComments(comment=comm))
+                        try:
+                            resp_1 = client.models.generate_content(model='gemini-2.5-flash',contents=f'Проанализируй следующие комментарии, связанные с номером телефона:\n{list(comment_score_arr.keys())}\nОтветь строго одной цифрой:\n1 — если комментарии указывают, что номер телефона принадлежит, прикидывается или связан с организацией, банком, компанией или службой поддержки;\n0 — если комментарии говорят о чём-то другом.\nОтвет должен быть только цифрой, без пояснений.')
+                            if resp_1:
+                                comment_for_ai = []
+                                for key,val in comment_score_arr.items():
+                                    if val == 1.0 or 3.0:
+                                        comment_for_ai.append(key)
+                                resp_2 = client.models.generate_content(model='gemini-2.5-flash',contents=f'На основе комментариев, связанных с номером телефона:\n{comment_for_ai}\nСформулируй краткую рекомендацию на украинском языке: стоит ли доверять этому номеру телефона.\nПосле рекомендации приведи до 10 комментариев из списка, которые лучше всего подтверждают твой вывод.\nФормат вывода:\nРекомендация:\n<текст>\nПодтверждающие комментарии:\n1. <комментарий 1>\n2. <комментарий 2>\n...')
+                            else:
+                                resp_2 = client.models.generate_content(model='gemini-2.5-flash',contents=f'На основе комментариев, связанных с номером телефона:\n{comment_score_arr.keys()}\nСформулируй краткую рекомендацию на украинском языке: стоит ли доверять этому номеру телефона.\nПосле рекомендации приведи до 10 комментариев из списка, которые лучше всего подтверждают твой вывод.\nФормат вывода:\nРекомендация:\n<текст>\nПодтверждающие комментарии:\n1. <комментарий 1>\n2. <комментарий 2>\n...')
+                            resp_3 = client.models.generate_content(model='gemini-2.5-flash',contents=f'На основе комментариев, относящихся к номеру телефона:\n{comment_score_arr.keys()}\nВыбери не более 10 комментариев, которые наиболее полно и точно характеризуют этот номер телефона. Ответ должен быть без твоего ответа просто комментарии.\nФормат вывода:1. <комментарий 1>\n2. <комментарий 2>\n...')
+                            resp_2 = resp_2.text
+                            resp_3 = resp_3.text
+                            rating = round(sum(scres) / len(comment_score_arr.keys()), 1)
+                            created_at = str(datetime.today().date())
+                        except (google.genai.errors.ServerError,google.genai.errors.ClientError):
+                            session.add(Numbers(number=num,last_10_comments='AI is overloaded, please try again later.',answer_ai='AI is overloaded, please try again later.',rating=round(sum(scres) / len(comment_score_arr.keys()),1),created_at=datetime.today().date()))
                         else:
-                            resp_2 = client.models.generate_content(model='gemini-2.5-flash',contents=f'На основе комментариев, связанных с номером телефона:\n{comment_score_arr.keys()}\nСформулируй краткую рекомендацию на украинском языке: стоит ли доверять этому номеру телефона.\nПосле рекомендации приведи до 10 комментариев из списка, которые лучше всего подтверждают твой вывод.\nФормат вывода:\nРекомендация:\n<текст>\nПодтверждающие комментарии:\n1. <комментарий 1>\n2. <комментарий 2>\n...')
-                        resp_3 = client.models.generate_content(model='gemini-2.5-flash',contents=f'На основе комментариев, относящихся к номеру телефона:\n{comment_score_arr.keys()}\nВыбери не более 10 комментариев, которые наиболее полно и точно характеризуют этот номер телефона. Ответ должен быть без твоего ответа просто комментарии.\nФормат вывода:1. <комментарий 1>\n2. <комментарий 2>\n...')
-                        resp_2 = resp_2.text
-                        resp_3 = resp_3.text
-                        rating = round(sum(scres) / len(comment_score_arr.keys()), 1)
-                        created_at = str(datetime.today().date())
-                    except google.genai.errors.ServerError:
-                        session.add(Numbers(number=num,last_10_comments='AI is overloaded, please try again later.',answer_ai='AI is overloaded, please try again later.',rating=round(sum(scres) / len(comment_score_arr.keys()),1),created_at=datetime.today().date()))
-                    else:
-                         session.add(Numbers(number=num,last_10_comments=resp_3,answer_ai=resp_2,rating=rating,created_at=created_at))
-                    for comm in comment_score_arr:
-                        session.add(AllComments(comment=comm))
-                    return str({"number":num,"last_10_comments":resp_3,"answer_ai":resp_2,"rating":rating,"created_at":created_at})
+                             session.add(Numbers(number=num,last_10_comments=resp_3,answer_ai=resp_2,rating=rating,created_at=created_at))
+                        session.commit()
+                    return {"number":num,"last_10_comments":resp_3,"answer_ai":resp_2,"rating":rating,"created_at":created_at}
             else:
-                return '{"Phone number details":"There is not enough data to rate the phone."}'
+                return {"Phone number details":"There is not enough data to rate the phone."}
     async def main():
         if await all_num() is True:
             return await ret_num()
